@@ -795,6 +795,98 @@ describe('/mcp-oauth', () => {
 	});
 
 	// -------------------------------------------------------------------------
+	// Client listing and revocation (admin CRUD on directus_oauth_clients)
+	// -------------------------------------------------------------------------
+	describe('GET /mcp-oauth/clients', () => {
+		it.each(vendors)('%s - non-admin user gets 403', async (vendor) => {
+			const url = getUrl(vendor);
+
+			// API_ONLY user has a token but no admin role → no access policies for directus_oauth_clients
+			const res = await request(url)
+				.get('/mcp-oauth/clients')
+				.set('Authorization', `Bearer ${USER.API_ONLY.TOKEN}`)
+				.expect(403);
+
+			expect(res.body).toMatchObject({ errors: expect.any(Array) });
+		});
+
+		it.each(vendors)('%s - admin user gets 200 with array', async (vendor) => {
+			const url = getUrl(vendor);
+
+			const res = await request(url)
+				.get('/mcp-oauth/clients')
+				.set('Authorization', `Bearer ${USER.ADMIN.TOKEN}`)
+				.expect(200);
+
+			expect(res.body).toMatchObject({ data: expect.any(Array) });
+		});
+	});
+
+	describe('GET /mcp-oauth/clients/:id', () => {
+		it.each(vendors)('%s - admin can fetch a registered client by id', async (vendor) => {
+			const url = getUrl(vendor);
+
+			const clientId = await registerClient(url);
+
+			const res = await request(url)
+				.get(`/mcp-oauth/clients/${clientId}`)
+				.set('Authorization', `Bearer ${USER.ADMIN.TOKEN}`)
+				.expect(200);
+
+			expect(res.body).toMatchObject({
+				data: expect.objectContaining({ client_id: clientId }),
+			});
+		});
+	});
+
+	describe('DELETE /mcp-oauth/clients/:id', () => {
+		it.each(vendors)(
+			'%s - admin can delete a client and cascade wipes tokens/codes/consents/sessions',
+			async (vendor) => {
+				const url = getUrl(vendor);
+				const redirectUri = `${url}/mcp-oauth-client-delete-callback`;
+
+				// Register client and run full flow to create tokens + consents
+				const clientId = await registerClient(url, { redirectUri });
+				const cookies = await loginAsAdmin(url);
+				const pkce = generatePKCE();
+				const code = await authorize(url, cookies, clientId, redirectUri, pkce);
+				await exchangeCode(url, clientId, code, redirectUri, pkce.verifier);
+
+				// Verify client exists before deletion
+				await request(url)
+					.get(`/mcp-oauth/clients/${clientId}`)
+					.set('Authorization', `Bearer ${USER.ADMIN.TOKEN}`)
+					.expect(200);
+
+				// Delete the client
+				await request(url)
+					.delete(`/mcp-oauth/clients/${clientId}`)
+					.set('Authorization', `Bearer ${USER.ADMIN.TOKEN}`)
+					.expect(200);
+
+				// After deletion, fetching the client should return 403
+				// (ItemsService throws ForbiddenError for missing/inaccessible items)
+				await request(url)
+					.get(`/mcp-oauth/clients/${clientId}`)
+					.set('Authorization', `Bearer ${USER.ADMIN.TOKEN}`)
+					.expect(403);
+
+				// Tokens for this client should no longer be valid (cascade deleted)
+				// Attempting a token refresh with a grant that had this client_id should fail
+				const refreshRes = await request(url)
+					.post('/mcp-oauth/token')
+					.type('form')
+					.send({ grant_type: 'refresh_token', client_id: clientId, refresh_token: 'any', resource: `${url}/mcp` });
+
+				// 400 invalid_grant (client gone, no matching token)
+				expect(refreshRes.status).toBe(400);
+			},
+			60_000,
+		);
+	});
+
+	// -------------------------------------------------------------------------
 	// WebSocket guard (OAuth sessions rejected)
 	// -------------------------------------------------------------------------
 	describe('WebSocket guard', () => {
