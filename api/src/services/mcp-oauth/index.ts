@@ -753,6 +753,18 @@ export class McpOAuthService {
 		const env = useEnv();
 		const logger = useLogger();
 
+		// Pre-transaction: resolve client_id and authenticate
+		const { clientId: resolvedClientId, basicAuth } = this.resolveClientId(params);
+		params.client_id = resolvedClientId;
+
+		const preAuthClient = await this.resolveClientFromDb(resolvedClientId);
+
+		if (!preAuthClient) {
+			throw new OAuthError(400, 'invalid_grant', 'Authorization code is invalid or has expired');
+		}
+
+		this.authenticateClient(preAuthClient, params, basicAuth);
+
 		// 1. RFC 6749 Section 4.1.3: required token request params
 		if (!params.grant_type) {
 			throw new OAuthError(400, 'invalid_request', 'grant_type is required');
@@ -760,10 +772,6 @@ export class McpOAuthService {
 
 		if (params.grant_type !== 'authorization_code') {
 			throw new OAuthError(400, 'unsupported_grant_type', 'Only authorization_code grant is supported');
-		}
-
-		if (!params.client_id) {
-			throw new OAuthError(400, 'invalid_request', 'client_id is required');
 		}
 
 		if (!params.code) {
@@ -985,13 +993,12 @@ export class McpOAuthService {
 		const env = useEnv();
 		const logger = useLogger();
 
+		const { clientId: resolvedClientId, basicAuth } = this.resolveClientId(params);
+		params.client_id = resolvedClientId;
+
 		// 1. Validate required params
 		if (params.grant_type !== 'refresh_token') {
 			throw new OAuthError(400, 'unsupported_grant_type', 'grant_type must be refresh_token');
-		}
-
-		if (!params.client_id) {
-			throw new OAuthError(400, 'invalid_request', 'client_id is required');
 		}
 
 		if (!params.refresh_token) {
@@ -1009,6 +1016,8 @@ export class McpOAuthService {
 		if (!client) {
 			throw new OAuthError(400, 'invalid_grant', 'Invalid refresh token');
 		}
+
+		this.authenticateClient(client, params, basicAuth);
 
 		const clientGrantTypes: string[] = JSON.parse(client['grant_types']);
 

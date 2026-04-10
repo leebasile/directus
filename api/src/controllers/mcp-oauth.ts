@@ -455,10 +455,12 @@ mcpOAuthPublicRouter.post(
 		const grantType = req.body.grant_type;
 		let result;
 
+		const authParams = { ...req.body, authorization_header: req.headers.authorization };
+
 		if (grantType === 'authorization_code') {
-			result = await service.exchangeCode(req.body, context);
+			result = await service.exchangeCode(authParams, context);
 		} else if (grantType === 'refresh_token') {
-			result = await service.refreshToken(req.body, context);
+			result = await service.refreshToken(authParams, context);
 		} else {
 			throw new OAuthError(400, 'unsupported_grant_type', `Unsupported grant_type: ${grantType ?? 'missing'}`);
 		}
