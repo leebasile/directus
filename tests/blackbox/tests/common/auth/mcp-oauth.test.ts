@@ -837,6 +837,49 @@ describe('/mcp-oauth', () => {
 				data: expect.objectContaining({ client_id: clientId }),
 			});
 		});
+
+		it.each(vendors)('%s - client_secret_hash is redacted for confidential clients', async (vendor) => {
+			const url = getUrl(vendor);
+
+			// Register a confidential client so a secret hash is actually persisted
+			const regRes = await request(url)
+				.post('/mcp-oauth/register')
+				.send({
+					client_name: `conceal-test-${Date.now()}`,
+					redirect_uris: [`${url}/mcp-oauth-conceal-callback`],
+					grant_types: ['authorization_code', 'refresh_token'],
+					token_endpoint_auth_method: 'client_secret_basic',
+				})
+				.expect(201);
+
+			const clientId = regRes.body.client_id as string;
+			const rawSecret = regRes.body.client_secret as string;
+			expect(rawSecret).toBeTruthy();
+
+			const res = await request(url)
+				.get(`/mcp-oauth/clients/${clientId}`)
+				.set('Authorization', `Bearer ${USER.ADMIN.TOKEN}`)
+				.expect(200);
+
+			// The raw secret and its SHA-256 hash must never be exposed in admin responses.
+			// The `conceal` special on the field redacts the value to '**********' on read.
+			const expectedHash = crypto.createHash('sha256').update(rawSecret).digest('hex');
+			const serialized = JSON.stringify(res.body);
+			expect(serialized).not.toContain(rawSecret);
+			expect(serialized).not.toContain(expectedHash);
+			expect(res.body.data.client_secret_hash).toBe('**********');
+		});
+
+		it.each(vendors)('%s - client_secret_hash filter operators are rejected', async (vendor) => {
+			const url = getUrl(vendor);
+
+			// Any filter on a concealed field beyond `_eq` / `_null` lets an attacker probe
+			// the hash character-by-character. Directus rejects these at the query validator.
+			await request(url)
+				.get('/mcp-oauth/clients?filter[client_secret_hash][_contains]=abc')
+				.set('Authorization', `Bearer ${USER.ADMIN.TOKEN}`)
+				.expect(400);
+		});
 	});
 
 	describe('DELETE /mcp-oauth/clients/:id', () => {
