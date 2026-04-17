@@ -344,7 +344,7 @@ async function save() {
 
 		// Navigate to dashboard if we have projects
 		if (selectedProjectIds.value.length > 0) {
-			router.push(`/deployments/${props.provider}`);
+			router.push({ name: 'deployments-provider-dashboard', params: { provider: props.provider } });
 		}
 	} catch (error) {
 		unexpectedError(error);
@@ -360,7 +360,7 @@ async function deleteConfig() {
 		await sdk.request(deleteDeployment(props.provider));
 		await refreshNavigation();
 		confirmDelete.value = false;
-		router.push('/deployments');
+		router.push({ name: 'deployments-overview' });
 	} catch (error) {
 		unexpectedError(error);
 	} finally {
