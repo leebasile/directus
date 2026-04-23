@@ -66,7 +66,7 @@ const deployDisabledHint = computed(() => {
 	if (!canDeploy) return t('no_permission');
 
 	if (currentProject.value?.deployable === false) {
-		return props.provider === 'cloudflare'
+		return props.provider === 'cloudflare-workers'
 			? t('deployment.provider.project.not_deployable_cloudflare')
 			: t('deployment.provider.project.not_deployable');
 	}
@@ -431,7 +431,7 @@ onUnmounted(() => {
 										{{ $t('deployment.provider.runs.deploy_preview') }}
 									</template>
 									<template v-else-if="action.kind === 'deploy_hook'">
-										{{ $t('deployment.provider.cloudflare.deploy_hooks.deploy_via', { name: action.name }) }}
+										{{ $t('deployment.provider.cloudflare-workers.deploy_hooks.deploy_via', { name: action.name }) }}
 									</template>
 									<template v-else>{{ $t('deployment.provider.runs.refresh') }}</template>
 								</VListItemContent>
