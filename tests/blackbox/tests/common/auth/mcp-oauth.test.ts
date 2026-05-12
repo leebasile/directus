@@ -870,15 +870,25 @@ describe('/mcp-oauth', () => {
 			expect(res.body.data.client_secret_hash).toBe('**********');
 		});
 
-		it.each(vendors)('%s - client_secret_hash filter operators are rejected', async (vendor) => {
+		it.each(vendors)('%s - disallowed client_secret_hash filter operators return invalid query', async (vendor) => {
 			const url = getUrl(vendor);
 
 			// Any filter on a concealed field beyond `_eq` / `_null` lets an attacker probe
 			// the hash character-by-character. Directus rejects these at the query validator.
-			await request(url)
+			const rejectedRes = await request(url)
 				.get('/mcp-oauth/clients?filter[client_secret_hash][_contains]=abc')
 				.set('Authorization', `Bearer ${USER.ADMIN.TOKEN}`)
 				.expect(400);
+
+			expect(rejectedRes.body.errors[0].extensions.code).toBe('INVALID_QUERY');
+			expect(rejectedRes.body.errors[0].message).toContain(
+				'Field with "conceal" special does not allow the "_contains" filter operator',
+			);
+
+			await request(url)
+				.get('/mcp-oauth/clients?filter[client_secret_hash][_null]=false')
+				.set('Authorization', `Bearer ${USER.ADMIN.TOKEN}`)
+				.expect(200);
 		});
 	});
 
