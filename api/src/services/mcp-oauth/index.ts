@@ -18,14 +18,9 @@ import { parseOAuthScope } from '../../utils/parse-oauth-scope.js';
 import { transaction } from '../../utils/transaction.js';
 import { Url } from '../../utils/url.js';
 import { ActivityService } from '../activity.js';
-import {
-	type CimdMetadata,
-	detectClientIdType,
-	fetchCimdMetadata,
-	getAllowedDomains,
-	isDomainAllowed,
-} from './cimd.js';
+import { type CimdMetadata, detectClientIdType, fetchCimdMetadata, getAllowedDomains } from './cimd.js';
 import { OAuthError } from './types/error.js';
+import { isDomainAllowed } from './utils/domain.js';
 import { matchRedirectUri, validateRedirectUri } from './utils/redirect.js';
 
 export { OAuthError } from './types/error.js';
@@ -36,7 +31,6 @@ export { validateRedirectUri } from './utils/redirect.js';
 const DEFAULT_UNUSED_CLIENT_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3d -- matches env default
 const DEFAULT_CIMD_TTL_MS = 3_600_000; // 1 hour
 const MAX_REDIRECT_URIS = 10;
-const MAX_REDIRECT_URI_LENGTH = 255;
 const MAX_CLIENT_NAME_LENGTH = 200;
 
 /** Consent JWT typ claim -- prevents token confusion with regular Directus JWTs */
