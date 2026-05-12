@@ -851,7 +851,7 @@ describe('/mcp-oauth', () => {
 				const cookies = await loginAsAdmin(url);
 				const pkce = generatePKCE();
 				const code = await authorize(url, cookies, clientId, redirectUri, pkce);
-				await exchangeCode(url, clientId, code, redirectUri, pkce.verifier);
+				const { refresh_token } = await exchangeCode(url, clientId, code, redirectUri, pkce.verifier);
 
 				// Verify client exists before deletion
 				await request(url)
@@ -877,10 +877,10 @@ describe('/mcp-oauth', () => {
 				const refreshRes = await request(url)
 					.post('/mcp-oauth/token')
 					.type('form')
-					.send({ grant_type: 'refresh_token', client_id: clientId, refresh_token: 'any', resource: `${url}/mcp` });
+					.send({ grant_type: 'refresh_token', client_id: clientId, refresh_token, resource: `${url}/mcp` });
 
-				// 400 invalid_grant (client gone, no matching token)
 				expect(refreshRes.status).toBe(400);
+				expect(refreshRes.body).toMatchObject({ error: 'invalid_grant' });
 			},
 			60_000,
 		);
