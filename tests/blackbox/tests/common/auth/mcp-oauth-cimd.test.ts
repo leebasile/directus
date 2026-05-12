@@ -437,8 +437,8 @@ describe('/mcp-oauth CIMD', () => {
 						resource: `${url}/mcp`,
 					});
 
-				// Should get an error (400 error page since redirect_uri is not yet trusted)
-				expect(res.status).toBeGreaterThanOrEqual(400);
+				expect(res.status).toBe(400);
+				expect(res.text).toContain('CIMD client registration is disabled');
 			},
 			30_000,
 		);
@@ -554,8 +554,8 @@ describe('/mcp-oauth CIMD', () => {
 						resource: `${url}/mcp`,
 					});
 
-				// Should get error (400 rendered error page)
-				expect(res.status).toBeGreaterThanOrEqual(400);
+				expect(res.status).toBe(400);
+				expect(res.text).toContain('client_id in document does not match fetch URL');
 			},
 			30_000,
 		);
@@ -589,7 +589,8 @@ describe('/mcp-oauth CIMD', () => {
 						resource: `${url}/mcp`,
 					});
 
-				expect(res.status).toBeGreaterThanOrEqual(400);
+				expect(res.status).toBe(400);
+				expect(res.text).toContain('client_name is required');
 			},
 			30_000,
 		);
@@ -625,7 +626,8 @@ describe('/mcp-oauth CIMD', () => {
 						resource: `${url}/mcp`,
 					});
 
-				expect(res.status).toBeGreaterThanOrEqual(400);
+				expect(res.status).toBe(400);
+				expect(res.text).toContain('CIMD documents must not contain client_secret');
 			},
 			30_000,
 		);
@@ -697,9 +699,9 @@ describe('/mcp-oauth CIMD', () => {
 	});
 
 	// -----------------------------------------------------------------------
-	// Domain allowlist (tested via error when domain not allowed)
+	// Authorization server metadata capability advertising
 	// -----------------------------------------------------------------------
-	describe('CIMD domain allowlist', () => {
+	describe('CIMD metadata capability advertising', () => {
 		it.each(vendors)(
 			'%s - server metadata advertises client_id_metadata_document_supported when CIMD enabled',
 			async (vendor) => {
