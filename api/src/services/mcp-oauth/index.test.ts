@@ -1497,6 +1497,7 @@ describe('McpOAuthService', () => {
 			mockCodeLookup();
 			// Atomic update returns 0 = already used
 			tracker.on.update('directus_oauth_codes').response(0);
+
 			tracker.on.select('directus_oauth_tokens').response([
 				{
 					id: 'grant-id',
@@ -1504,6 +1505,7 @@ describe('McpOAuthService', () => {
 					session: 'issued-session-hash',
 				},
 			]);
+
 			tracker.on.delete('directus_oauth_tokens').response(1);
 			tracker.on.delete('directus_sessions').response(1);
 
