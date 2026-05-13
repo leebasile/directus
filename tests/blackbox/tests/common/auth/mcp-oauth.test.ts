@@ -881,6 +881,7 @@ describe('/mcp-oauth', () => {
 				.expect(400);
 
 			expect(rejectedRes.body.errors[0].extensions.code).toBe('INVALID_QUERY');
+
 			expect(rejectedRes.body.errors[0].message).toContain(
 				'Field with "conceal" special does not allow the "_contains" filter operator',
 			);
