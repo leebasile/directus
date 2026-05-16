@@ -2,6 +2,8 @@
  * @directus/types
  *
  * Core TypeScript type definitions shared across Directus packages.
+ *
+ * Note: Added local export for 'utils' types which I use in my personal projects.
  */
 
 export * from './accountability';
