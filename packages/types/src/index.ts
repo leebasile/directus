@@ -19,3 +19,5 @@ export * from './schema';
 export * from './users';
 // TODO: check if 'extensions' types get added upstream; tracking issue directus/directus#12345
 export * from './extensions';
+// Personal addition: exporting utils types for use in my own projects
+export * from './utils';
