@@ -17,3 +17,5 @@ export * from './query';
 export * from './relations';
 export * from './schema';
 export * from './users';
+// TODO: check if 'extensions' types get added upstream; tracking issue directus/directus#12345
+export * from './extensions';
